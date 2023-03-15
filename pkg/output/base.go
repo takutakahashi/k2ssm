@@ -9,4 +9,5 @@ type OutputSecret struct {
 	Namespace string            `yaml:"namespace"`
 	Type      string            `yaml:"type"`
 	Data      map[string]string `yaml:"data"`
+	Labels    map[string]string `yaml:"labels"`
 }
