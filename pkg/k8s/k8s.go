@@ -21,7 +21,7 @@ type Kubernetes struct {
 }
 
 type GatherSecretsOpt struct {
-	Namespace        string
+	Namespaces       []string
 	MatchLabels      map[string]string
 	FromSealedSecret bool
 }
@@ -37,13 +37,25 @@ func NewKubernetes() (*Kubernetes, error) {
 
 	return &Kubernetes{c: k8sClient}, nil
 }
+
 func (k *Kubernetes) GatherSecrets(ctx context.Context, opt GatherSecretsOpt) (output.Output, error) {
+	ret := output.Output{Secrets: []output.OutputSecret{}}
+	for _, ns := range opt.Namespaces {
+		o, err := k.gatherSecrets(ctx, ns, opt)
+		if err != nil {
+			return ret, errors.Wrapf(err, "failed to ghater secrets in namespace %s", ns)
+		}
+		ret.Secrets = append(ret.Secrets, o.Secrets...)
+	}
+	return ret, nil
+}
+func (k *Kubernetes) gatherSecrets(ctx context.Context, ns string, opt GatherSecretsOpt) (output.Output, error) {
 	ret := output.Output{Secrets: []output.OutputSecret{}}
 	targetNames := []string{}
 	if opt.FromSealedSecret || true {
 		ssl := &v1alpha1.SealedSecretList{}
 		if err := k.c.List(ctx, ssl, &client.ListOptions{
-			Namespace:     opt.Namespace,
+			Namespace:     ns,
 			LabelSelector: labels.Set(opt.MatchLabels).AsSelector(),
 		}); err != nil {
 			return ret, errors.Wrap(err, "failed to list secrets")
@@ -54,7 +66,7 @@ func (k *Kubernetes) GatherSecrets(ctx context.Context, opt GatherSecretsOpt) (o
 	}
 	sl := &corev1.SecretList{}
 	if err := k.c.List(ctx, sl, &client.ListOptions{
-		Namespace:     opt.Namespace,
+		Namespace:     ns,
 		LabelSelector: labels.Set(opt.MatchLabels).AsSelector(),
 	}); err != nil {
 		return ret, errors.Wrap(err, "failed to list secrets")

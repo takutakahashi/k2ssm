@@ -36,7 +36,7 @@ to quickly create a Cobra application.`,
 			logrus.Fatal(err)
 		}
 		res, err := k.GatherSecrets(ctx, k8s.GatherSecretsOpt{
-			Namespace:   "default",
+			Namespaces:  []string{"default"},
 			MatchLabels: map[string]string{},
 		})
 		if err != nil {
